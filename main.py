@@ -6,6 +6,9 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
 
 file_path = "yahoo_data.xlsx"
 data = pd.read_excel(file_path)
@@ -44,3 +47,69 @@ plt.title("Actual vs. Predicted Stock Prices")
 plt.xlabel("Actual Prices")
 plt.ylabel("Predicted Prices")
 plt.show()
+
+data.set_index("Date", inplace=True)
+
+# Normalize the data
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaled_data = scaler.fit_transform(data["Close*"].values.reshape(-1, 1))
+
+# Prepare sequences for LSTM
+sequence_length = 3
+X, y = [], []
+
+for i in range(sequence_length, len(scaled_data)):
+    X.append(scaled_data[i - sequence_length:i, 0])  # Last 3 days
+    y.append(scaled_data[i, 0])  # Current day
+
+X, y = np.array(X), np.array(y)
+X = X.reshape((X.shape[0], X.shape[1], 1))  # Reshape for LSTM (samples, timesteps, features)
+
+# Split into training and testing sets
+train_size = int(len(X) * 0.8)
+X_train, X_test = X[:train_size], X[train_size:]
+y_train, y_test = y[:train_size], y[train_size:]
+
+# Build the LSTM model
+model = Sequential()
+model.add(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1)))
+model.add(LSTM(units=50))
+model.add(Dense(units=1))  # Output layer
+
+# Compile the model
+model.compile(optimizer="adam", loss="mean_squared_error")
+
+# Train the model
+model.fit(X_train, y_train, epochs=50, batch_size=16, verbose=1)
+
+# Predict on test data
+predicted_prices = model.predict(X_test)
+predicted_prices = scaler.inverse_transform(predicted_prices)  # Rescale back to original prices
+
+# Predict future prices
+future_days = 5
+last_sequence = scaled_data[-sequence_length:]  # Get the last sequence
+future_predictions = []
+
+for _ in range(future_days):
+    pred = model.predict(last_sequence.reshape(1, sequence_length, 1))[0][0]
+    future_predictions.append(pred)
+    last_sequence = np.append(last_sequence[1:], pred).reshape(sequence_length, 1)
+
+future_predictions = scaler.inverse_transform(np.array(future_predictions).reshape(-1, 1))
+
+# Plot results
+plt.figure(figsize=(10, 6))
+plt.plot(data.index, data["Close*"], label="Historical Prices", marker="o")
+test_dates = data.index[-len(y_test):]
+plt.plot(test_dates, predicted_prices, label="Predicted Prices", marker="x")
+
+future_dates = pd.date_range(data.index[-1] + "{}".format(pd.Timedelta(days=1)), periods=future_days)
+plt.plot(future_dates, future_predictions, label="Future Predictions", marker="s")
+
+plt.xlabel("Date")
+plt.ylabel("Stock Price")
+plt.title("Stock Price Prediction with LSTM")
+plt.legend()
+plt.show()
+
