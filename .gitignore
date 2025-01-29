@@ -161,3 +161,6 @@ cython_debug/
 
 # data
 btcusd_1-min_data_raw.csv
+
+# testing
+test.py

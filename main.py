@@ -23,9 +23,11 @@ data = pd.read_csv("btcusd_1-min_data_cleaned.csv")
 
 data.set_index("Timestamp", inplace=True)
 
+# changing the scale on the close data for better training
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaled_data = scaler.fit_transform(data["Close"].values.reshape(-1, 1))
 
+# training stuff
 sequence_length = 3
 X, y = [], []
 
@@ -40,6 +42,7 @@ train_size = int(len(X) * 0.8)
 X_train = X[:train_size]
 y_train = y[:train_size]
 
+# making the model!!!!!!!
 model = Sequential()
 model.add(Bidirectional(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1))))
 model.add(Bidirectional(LSTM(units=50)))
@@ -49,14 +52,14 @@ model.compile(optimizer="adam", loss="mean_squared_error")
 
 model.fit(X_train, y_train, epochs=50, batch_size=16, verbose=1, shuffle=False)
 
-future_days = 60
+future_days = 60 # this is arbitrary, but the model looks to work best for predictions in the next (a bit less than) 2 months
 last_sequence = scaled_data[-sequence_length:]
 future_predictions = []
 
+# mixing both the historical data and the future predictions
 for i in range(future_days):
     pred = model.predict(last_sequence.reshape(1, sequence_length, 1))[0][0]
     
-    # 🆕 Mix real data for the first few steps
     if i < sequence_length:
         last_sequence = np.append(last_sequence[1:], scaled_data[-sequence_length + i][0])
     else:
@@ -76,8 +79,8 @@ all_dates = convert_strs_into_dates(data.index.tolist() + future_dates)
 plt.xticks(get_x_ticks(date_list=all_dates, num_years=(all_dates[-1].year - all_dates[0].year), num_month=10, min_year=all_dates[0].year))
 
 plt.xlabel("Date")
-plt.ylabel("Stock Price")
-plt.title("Stock Price Prediction with LSTM")
+plt.ylabel("Bitcoin Price")
+plt.title("Bitcoin Price Prediction with LSTM")
 plt.legend()
 plt.show()
 
