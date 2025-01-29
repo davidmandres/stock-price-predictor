@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from pandas import DatetimeIndex
 
-def get_x_ticks(date_list: list, num_years: int, min_year: int, num_month) -> list:
+def get_x_ticks(date_list: list, num_years: int, min_year: int, num_month: int) -> list:
   x_ticks = np.zeros(num_years)
   for i in range(num_years):
     year = min_year + i
@@ -29,4 +29,7 @@ def generate_future_dates(start_date: str, end: int) -> DatetimeIndex:
     future_dates.append(start_date.strftime("%b %d, %Y"))
     
   return future_dates
+
+def turn_strs_into_dates(dates: list) -> list:
+  return [datetime.strptime(date, "%b %d, %Y") for date in dates]
     
