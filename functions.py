@@ -11,11 +11,10 @@ def get_x_ticks(date_list: list, num_years: int, min_year: int, num_month: int) 
   
   return x_ticks
 
-def find_earliest_date(num_month: int, year: int, dates: list) -> str:
+def find_earliest_date(num_month: int, year: int, dates: list) -> datetime:
   for date in dates:
-    parsed_date = datetime.strptime(date, "%b %d, %Y")
-    if parsed_date.month == num_month and parsed_date.year == year:
-         return parsed_date.strftime("%b %d, %Y")
+    if date.month == num_month and date.year == year:
+         return date
     
 def generate_future_dates(start_date: str, end: int) -> DatetimeIndex:
   future_dates = []
@@ -30,6 +29,9 @@ def generate_future_dates(start_date: str, end: int) -> DatetimeIndex:
     
   return future_dates
 
-def turn_strs_into_dates(dates: list) -> list:
+def convert_strs_into_dates(dates: list) -> DatetimeIndex:
   return [datetime.strptime(date, "%b %d, %Y") for date in dates]
+
+def convert_unix_to_str(unix: int) -> str:
+  return datetime.fromtimestamp(unix).strftime("%b %d, %Y")
     
